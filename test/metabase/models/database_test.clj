@@ -4,7 +4,7 @@
             [clojure.test :refer :all]
             [metabase.driver :as driver]
             [metabase.driver.util :as driver.u]
-            [metabase.models :refer [Database]]
+            [metabase.models :refer [Database Secret]]
             [metabase.models.database :as mdb]
             [metabase.models.permissions :as perms]
             [metabase.models.user :as user]
@@ -12,8 +12,11 @@
             [metabase.task :as task]
             [metabase.task.sync-databases :as task.sync-databases]
             [metabase.test :as mt]
+            [metabase.test.fixtures :as fixtures]
             [schema.core :as s]
             [toucan.db :as db]))
+
+(use-fixtures :once (fixtures/initialize :db :plugins :test-drivers))
 
 (defn- trigger-for-db [db-id]
   (some (fn [{trigger-key :key, :as trigger}]
@@ -155,3 +158,21 @@
            (mdb/sensitive-fields-for-db nil)))
     (is (= driver.u/default-sensitive-fields
            (mdb/sensitive-fields-for-db {})))))
+
+(deftest secret-resolution-test
+  (mt/with-driver :secret-test-driver
+    (testing "values for referenced secret IDs are resolved in a new DB"
+      (mt/with-temp Database [{:keys [details] :as db} {:engine  :secret-test-driver
+                                                        :name    "Test DB with secrets"
+                                                        :details {:host           "localhost"
+                                                                  :password-value "new-password"}}]
+        (testing " and saved db-details looks correct"
+          (is (not (contains? details :password-value)) "password-value was removed from details")
+          (is (contains? details :password-id) "password-id was added to details")
+          (let [secret (Secret (:password-id details))]
+            (testing " the persisted Secret record looks correct"
+              (is (some? secret) "Loaded Secret instance by ID")
+              (is (= :password (:kind secret)) "Secret instance had password kind")
+              (is (nil? (:source secret)) "Secret instance has nil source")
+              (is (= "new-password" (String. (:value secret))) "Secret value was correct"))))))))
+
