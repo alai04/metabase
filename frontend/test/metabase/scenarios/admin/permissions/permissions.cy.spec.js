@@ -20,11 +20,11 @@ describeWithoutToken("scenarios > admin > permissions", () => {
   it("should display error on failed save", () => {
     // revoke some permissions
     cy.visit("/admin/permissions/data/group/1");
-    cy.icon("close")
+    cy.icon("eye")
       .first()
       .click();
     cy.findAllByRole("option")
-      .contains("Allowed")
+      .contains("Unrestricted")
       .click();
 
     // stub out the PUT and save
@@ -189,7 +189,7 @@ describeWithoutToken("scenarios > admin > permissions", () => {
       modifyPermission(
         "Sample Dataset",
         DATA_ACCESS_PERMISSION_INDEX,
-        "Allowed",
+        "Unrestricted",
       );
 
       cy.findByText("You've made changes to permissions.");
@@ -274,12 +274,17 @@ describeWithoutToken("scenarios > admin > permissions", () => {
         cy.findByText("Permissions for the Administrators group");
         cy.findByText("1 person");
 
-        checkAdministratorsHaveAccessToEverything();
+        assertPermissionTable([["Sample Dataset", "Unrestricted", "Yes"]]);
 
         // Drill down to tables permissions
         cy.findByText("Sample Dataset").click();
 
-        checkAdministratorsHaveAccessToEverything();
+        assertPermissionTable([
+          ["Orders", "Unrestricted", "Yes"],
+          ["People", "Unrestricted", "Yes"],
+          ["Products", "Unrestricted", "Yes"],
+          ["Reviews", "Unrestricted", "Yes"],
+        ]);
       });
 
       it("allows view and edit permissions", () => {
@@ -287,19 +292,23 @@ describeWithoutToken("scenarios > admin > permissions", () => {
 
         selectSidebarItem("collection");
 
-        assertPermissionTable([["Sample Dataset", "No access", "No access"]]);
+        assertPermissionTable([["Sample Dataset", "No self-service", "No"]]);
 
         // Drill down to tables permissions
         cy.findByText("Sample Dataset").click();
 
         assertPermissionTable([
-          ["Orders", "No access"],
-          ["People", "No access"],
-          ["Products", "No access"],
-          ["Reviews", "No access"],
+          ["Orders", "No self-service", "No"],
+          ["People", "No self-service", "No"],
+          ["Products", "No self-service", "No"],
+          ["Reviews", "No self-service", "No"],
         ]);
 
-        modifyPermission("Orders", DATA_ACCESS_PERMISSION_INDEX, "Allowed");
+        modifyPermission(
+          "Orders",
+          DATA_ACCESS_PERMISSION_INDEX,
+          "Unrestricted",
+        );
 
         modal().within(() => {
           cy.findByText("Change access to this database to limited?");
@@ -307,21 +316,21 @@ describeWithoutToken("scenarios > admin > permissions", () => {
         });
 
         assertPermissionTable([
-          ["Orders", "Allowed"],
-          ["People", "No access"],
-          ["Products", "No access"],
-          ["Reviews", "No access"],
+          ["Orders", "Unrestricted", "No"],
+          ["People", "No self-service", "No"],
+          ["Products", "No self-service", "No"],
+          ["Reviews", "No self-service", "No"],
         ]);
 
         // Navigate back
         selectSidebarItem("collection");
 
-        assertPermissionTable([["Sample Dataset", "Limited", "No access"]]);
+        assertPermissionTable([["Sample Dataset", "Granular", "No"]]);
 
         modifyPermission(
           "Sample Dataset",
           NATIVE_QUERIES_PERMISSION_INDEX,
-          "Allowed",
+          "Yes",
         );
 
         modal().within(() => {
@@ -329,16 +338,16 @@ describeWithoutToken("scenarios > admin > permissions", () => {
           cy.button("Allow").click();
         });
 
-        assertPermissionTable([["Sample Dataset", "Allowed", "Allowed"]]);
+        assertPermissionTable([["Sample Dataset", "Unrestricted", "Yes"]]);
 
         // Drill down to tables permissions
         cy.findByText("Sample Dataset").click();
 
         assertPermissionTable([
-          ["Orders", "Allowed"],
-          ["People", "Allowed"],
-          ["Products", "Allowed"],
-          ["Reviews", "Allowed"],
+          ["Orders", "Unrestricted", "Yes"],
+          ["People", "Unrestricted", "Yes"],
+          ["Products", "Unrestricted", "Yes"],
+          ["Reviews", "Unrestricted", "Yes"],
         ]);
 
         cy.button("Save changes").click();
@@ -357,10 +366,10 @@ describeWithoutToken("scenarios > admin > permissions", () => {
         cy.findByText("Save changes").should("not.exist");
 
         assertPermissionTable([
-          ["Orders", "Allowed"],
-          ["People", "Allowed"],
-          ["Products", "Allowed"],
-          ["Reviews", "Allowed"],
+          ["Orders", "Unrestricted", "Yes"],
+          ["People", "Unrestricted", "Yes"],
+          ["Products", "Unrestricted", "Yes"],
+          ["Reviews", "Unrestricted", "Yes"],
         ]);
       });
     });
@@ -378,26 +387,30 @@ describeWithoutToken("scenarios > admin > permissions", () => {
         selectSidebarItem("Sample Dataset");
 
         assertPermissionTable([
-          ["Administrators", "Allowed", "Allowed"],
-          ["All Users", "No access", "No access"],
-          ["collection", "No access", "No access"],
-          ["data", "Allowed", "Allowed"],
-          ["nosql", "Allowed", "No access"],
-          ["readonly", "No access", "No access"],
+          ["Administrators", "Unrestricted", "Yes"],
+          ["All Users", "No self-service", "No"],
+          ["collection", "No self-service", "No"],
+          ["data", "Unrestricted", "Yes"],
+          ["nosql", "Unrestricted", "No"],
+          ["readonly", "No self-service", "No"],
         ]);
 
         selectSidebarItem("Orders");
 
         assertPermissionTable([
-          ["Administrators", "Allowed"],
-          ["All Users", "No access"],
-          ["collection", "No access"],
-          ["data", "Allowed"],
-          ["nosql", "Allowed"],
-          ["readonly", "No access"],
+          ["Administrators", "Unrestricted", "Yes"],
+          ["All Users", "No self-service", "No"],
+          ["collection", "No self-service", "No"],
+          ["data", "Unrestricted", "Yes"],
+          ["nosql", "Unrestricted", "No"],
+          ["readonly", "No self-service", "No"],
         ]);
 
-        modifyPermission("readonly", DATA_ACCESS_PERMISSION_INDEX, "Allowed");
+        modifyPermission(
+          "readonly",
+          DATA_ACCESS_PERMISSION_INDEX,
+          "Unrestricted",
+        );
 
         modal().within(() => {
           cy.findByText("Change access to this database to limited?");
@@ -405,12 +418,12 @@ describeWithoutToken("scenarios > admin > permissions", () => {
         });
 
         assertPermissionTable([
-          ["Administrators", "Allowed"],
-          ["All Users", "No access"],
-          ["collection", "No access"],
-          ["data", "Allowed"],
-          ["nosql", "Allowed"],
-          ["readonly", "Allowed"],
+          ["Administrators", "Unrestricted", "Yes"],
+          ["All Users", "No self-service", "No"],
+          ["collection", "No self-service", "No"],
+          ["data", "Unrestricted", "Yes"],
+          ["nosql", "Unrestricted", "No"],
+          ["readonly", "Unrestricted", "No"],
         ]);
 
         // Navigate back
@@ -419,19 +432,15 @@ describeWithoutToken("scenarios > admin > permissions", () => {
           .click();
 
         assertPermissionTable([
-          ["Administrators", "Allowed", "Allowed"],
-          ["All Users", "No access", "No access"],
-          ["collection", "No access", "No access"],
-          ["data", "Allowed", "Allowed"],
-          ["nosql", "Allowed", "No access"],
-          ["readonly", "Limited", "No access"],
+          ["Administrators", "Unrestricted", "Yes"],
+          ["All Users", "No self-service", "No"],
+          ["collection", "No self-service", "No"],
+          ["data", "Unrestricted", "Yes"],
+          ["nosql", "Unrestricted", "No"],
+          ["readonly", "Granular", "No"],
         ]);
 
-        modifyPermission(
-          "readonly",
-          NATIVE_QUERIES_PERMISSION_INDEX,
-          "Allowed",
-        );
+        modifyPermission("readonly", NATIVE_QUERIES_PERMISSION_INDEX, "Yes");
 
         modal().within(() => {
           cy.findByText("Allow native query editing?");
@@ -439,12 +448,12 @@ describeWithoutToken("scenarios > admin > permissions", () => {
         });
 
         assertPermissionTable([
-          ["Administrators", "Allowed", "Allowed"],
-          ["All Users", "No access", "No access"],
-          ["collection", "No access", "No access"],
-          ["data", "Allowed", "Allowed"],
-          ["nosql", "Allowed", "No access"],
-          ["readonly", "Allowed", "Allowed"],
+          ["Administrators", "Unrestricted", "Yes"],
+          ["All Users", "No self-service", "No"],
+          ["collection", "No self-service", "No"],
+          ["data", "Unrestricted", "Yes"],
+          ["nosql", "Unrestricted", "No"],
+          ["readonly", "Unrestricted", "Yes"],
         ]);
 
         cy.button("Save changes").click();
@@ -463,15 +472,41 @@ describeWithoutToken("scenarios > admin > permissions", () => {
         cy.findByText("Save changes").should("not.exist");
 
         assertPermissionTable([
-          ["Administrators", "Allowed", "Allowed"],
-          ["All Users", "No access", "No access"],
-          ["collection", "No access", "No access"],
-          ["data", "Allowed", "Allowed"],
-          ["nosql", "Allowed", "No access"],
-          ["readonly", "Allowed", "Allowed"],
+          ["Administrators", "Unrestricted", "Yes"],
+          ["All Users", "No self-service", "No"],
+          ["collection", "No self-service", "No"],
+          ["data", "Unrestricted", "Yes"],
+          ["nosql", "Unrestricted", "No"],
+          ["readonly", "Unrestricted", "Yes"],
         ]);
       });
     });
+  });
+
+  // TODO: uncomment when BE is ready
+  it.skip("block permission block access to questions that use blocked sources", () => {
+    cy.signInAsNormalUser();
+
+    cy.visit("/question/1");
+    cy.findAllByText("Orders");
+
+    cy.signInAsAdmin();
+
+    cy.visit("/admin/permissions/data/database/1");
+
+    ["All Users", "collection", "data", "nosql", "readonly"].forEach(group =>
+      modifyPermission(group, DATA_ACCESS_PERMISSION_INDEX, "Block"),
+    );
+
+    cy.findByText("Save changes").click();
+
+    modal().within(() => {
+      cy.button("Yes").click();
+    });
+
+    cy.signInAsNormalUser();
+
+    cy.visit("/question/1");
   });
 });
 
@@ -506,12 +541,12 @@ describeWithToken("scenarios > admin > permissions", () => {
     cy.button("Save").click();
 
     assertPermissionTable([
-      ["Administrators", "Allowed"],
+      ["Administrators", "Unrestricted"],
       ["All Users", "Sandboxed"],
-      ["collection", "No access"],
-      ["data", "Allowed"],
-      ["nosql", "Allowed"],
-      ["readonly", "No access"],
+      ["collection", "No self-service"],
+      ["data", "Unrestricted"],
+      ["nosql", "Unrestricted"],
+      ["readonly", "No self-service"],
     ]);
 
     modifyPermission(
@@ -532,12 +567,12 @@ describeWithToken("scenarios > admin > permissions", () => {
     cy.button("Save changes").click();
 
     assertPermissionTable([
-      ["Administrators", "Allowed"],
+      ["Administrators", "Unrestricted"],
       ["All Users", "Sandboxed"],
-      ["collection", "No access"],
-      ["data", "Allowed"],
-      ["nosql", "Allowed"],
-      ["readonly", "No access"],
+      ["collection", "No self-service"],
+      ["data", "Unrestricted"],
+      ["nosql", "Unrestricted"],
+      ["readonly", "No self-service"],
     ]);
   });
 });
@@ -595,21 +630,5 @@ function assertPermissionTable(rows) {
     getPermissionRowPermissions(item).each(($permissionEl, index) => {
       cy.wrap($permissionEl).should("have.text", permissions[index]);
     });
-  });
-}
-
-function checkAdministratorsHaveAccessToEverything() {
-  cy.findAllByTestId("permissions-select").each($permissionSelect => {
-    cy.wrap($permissionSelect)
-      .should("have.text", "Allowed")
-      .trigger("mouseenter");
-
-    popover().within(() => {
-      cy.findByText(
-        "Administrators always have the highest level of access to everything in Metabase.",
-      );
-    });
-
-    cy.wrap($permissionSelect).trigger("mouseleave");
   });
 }
