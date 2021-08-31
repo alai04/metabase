@@ -524,6 +524,7 @@ jobs:
 ########################################################################################################################
 
   checkout:
+    resource_class: small
     executor: clojure-and-node-and-browsers
     steps:
       - checkout
@@ -575,6 +576,7 @@ jobs:
             - metabase/metabase
 
   check-migrations:
+    resource_class: small
     executor:
       clojure-and-node-and-browsers
     steps:
@@ -599,6 +601,7 @@ jobs:
 ########################################################################################################################
 
   be-deps:
+    resource_class: small
     executor: clojure-and-node-and-browsers
     parameters:
       <<: *Params
@@ -736,6 +739,7 @@ jobs:
             - steps: << parameters.after-steps >>
 
   test-build-scripts:
+    resource_class: small
     executor: clojure-and-node-and-browsers
     steps:
       - attach-workspace
@@ -802,6 +806,7 @@ jobs:
                   - /home/circleci/.cache/Cypress
 
   shared-tests-cljs:
+    resource_class: small
     executor: clojure-and-node-and-browsers
     steps:
       - run-yarn-command:
