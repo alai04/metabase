@@ -11,6 +11,11 @@ executors:
     working_directory: /home/circleci/metabase/metabase/
     docker:
       - image: metabase/ci:circleci-java-11-clj-1.10.3.929-07-27-2021-node-browsers
+
+  clojure-and-node-and-browsers-with-maildev:
+    working_directory: /home/circleci/metabase/metabase/
+    docker:
+      - image: metabase/ci:circleci-java-11-clj-1.10.3.929-07-27-2021-node-browsers
       - image: maildev/maildev
 
   java-8:
@@ -927,7 +932,7 @@ jobs:
     parameters:
       e:
         type: executor
-        default: clojure-and-node-and-browsers
+        default: clojure-and-node-and-browsers-with-maildev
       cypress-group:
         type: string
       source-folder:
