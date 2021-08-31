@@ -529,6 +529,7 @@ jobs:
 ########################################################################################################################
 
   checkout:
+    resource_class: small
     executor: clojure-and-node-and-browsers
     steps:
       - checkout
@@ -821,6 +822,7 @@ jobs:
   # Unlike the other build-uberjar steps, this step should be run once overall and the results can be shared between
   # OSS and EE uberjars.
   build-uberjar-drivers:
+    resource_class: small
     executor: clojure-and-node-and-browsers
     parameters:
       <<: *Params
@@ -1029,18 +1031,21 @@ workflows:
       - test-driver:
           matrix:
             parameters:
-              driver: ["bigquery", "bigquery-cloud-sdk", "googleanalytics"]
+              driver: ["bigquery", "bigquery-cloud-sdk", "googleanalytics", "sqlite"]
           name: be-tests-<< matrix.driver >>
           requires:
             - be-tests-java-11-ee
           driver: << matrix.driver >>
 
       - test-driver:
-          name: be-tests-druid-ee
+          matrix:
+            parameters:
+              driver: ["sqlserver", "druid"]
+          name: be-tests-<< matrix.driver >>-ee
           requires:
             - be-tests-java-11-ee
-          e: druid
-          driver: druid
+          e: << matrix.driver >>
+          driver: << matrix.driver >>
 
       - test-driver:
           matrix:
@@ -1181,15 +1186,6 @@ workflows:
           driver: sparksql
 
       - test-driver:
-          matrix:
-            parameters:
-              version: ["sqlite", "sqlserver"]
-          name: be-tests-<< matrix.version >>-ee
-          requires:
-            - be-tests-java-11-ee
-          driver: << matrix.version >>
-
-      - test-driver:
           name: be-tests-vertica-ee
           requires:
             - be-tests-java-11-ee
@@ -1205,7 +1201,7 @@ workflows:
             - be-deps
 
       - build-uberjar-drivers:
-          name: build-uberjar-drivers-<< matrix.edition >>
+          name: build-uberjar-drivers
           requires:
             - be-deps
           <<: *Matrix
@@ -1219,7 +1215,7 @@ workflows:
       - build-uberjar:
           name: build-uberjar-<< matrix.edition >>
           requires:
-            - build-uberjar-drivers-<< matrix.edition >>
+            - build-uberjar-drivers
             - build-uberjar-frontend-<< matrix.edition >>
           <<: *Matrix
 
