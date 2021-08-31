@@ -645,6 +645,9 @@ jobs:
         default: []
       clojure-args:
         type: string
+      java-version:
+        type: string
+        default: ""
       after-steps:
         type: steps
         default: []
@@ -708,6 +711,9 @@ jobs:
         type: string
         default: ""
       extra-env:
+        type: string
+        default: ""
+      version:
         type: string
         default: ""
     executor: << parameters.e >>
@@ -987,31 +993,16 @@ workflows:
             - checkout
 
       - clojure:
-          name: be-tests-<< matrix.edition >>
+          matrix:
+            parameters:
+              edition: ["ee", "oss"]
+              java-version: ["java-8", "java-11", "java-16"]
+          name: be-tests-<< matrix.java-version >>-<< matrix.edition >>
           requires:
             - be-deps
-          e: java-8
+          e: << matrix.java-version >>
           clojure-args: -X:dev:ci:test
           skip-when-no-change: true
-          <<: *Matrix
-
-      - clojure:
-          name: be-tests-java-11-<< matrix.edition >>
-          requires:
-            - be-deps
-          e: java-11
-          clojure-args: -X:dev:ci:test
-          skip-when-no-change: true
-          <<: *Matrix
-
-      - clojure:
-          name: be-tests-java-16-<< matrix.edition >>
-          requires:
-            - be-deps
-          e: java-16
-          clojure-args: -X:dev:ci:test
-          skip-when-no-change: true
-          <<: *Matrix
 
       - clojure:
           name: be-linter-cloverage
@@ -1027,60 +1018,49 @@ workflows:
           skip-when-no-change: true
 
       - test-driver:
-          name: be-tests-bigquery-ee
+          matrix:
+            parameters:
+              driver: ["bigquery", "bigquery-cloud-sdk", "googleanalytics"]
+          name: be-tests-<< matrix.driver >>
           requires:
-            - be-tests-ee
-          driver: bigquery
-
-      - test-driver:
-          name: be-tests-bigquery-cloud-sdk-ee
-          requires:
-            - be-tests-ee
-          driver: bigquery-cloud-sdk
+            - be-tests-java-11-ee
+          driver: << matrix.driver >>
 
       - test-driver:
           name: be-tests-druid-ee
           requires:
-            - be-tests-ee
+            - be-tests-java-11-ee
           e: druid
           driver: druid
 
       - test-driver:
-          name: be-tests-googleanalytics-ee
+          matrix:
+            parameters:
+              version: ["mongo-4-0", "mongo-latest"]
+          name: be-tests-<< matrix.version >>-ee
+          description: "(<< matrix.version >>)"
           requires:
-            - be-tests-ee
-          driver: googleanalytics
-
-      - test-driver:
-          name: be-tests-mongo-ee
-          description: "(Mongo 4.0)"
-          requires:
-            - be-tests-ee
-          e: mongo-4-0
+            - be-tests-java-11-ee
+          e: << matrix.version >>
           driver: mongo
 
       - test-driver:
-          name: be-tests-mongo-latest-ee
-          description: "(Mongo latest)"
+          matrix:
+            parameters:
+              version: ["mysql-5-7", "mariadb-10-2", "mariadb-latest"]
+          name: be-tests-<< matrix.version >>-ee
+          description: "(<< matrix.version >>)"
           requires:
-            - be-tests-ee
-          e: mongo-latest
-          driver: mongo
-
-      - test-driver:
-          name: be-tests-mysql-ee
-          description: "(MySQL 5.7)"
-          requires:
-            - be-tests-ee
+            - be-tests-java-11-ee
           e:
-            name: mysql-5-7
+            name: << matrix.version >>
           driver: mysql
 
       - test-driver:
           name: be-tests-mysql-latest-ee
           description: "(MySQL latest)"
           requires:
-            - be-tests-ee
+            - be-tests-java-11-ee
           e:
             name: mysql-latest
           driver: mysql
@@ -1098,27 +1078,9 @@ workflows:
             MB_MYSQL_SSL_TEST_PASSWORD=$MYSQL_RDS_SSL_INSTANCE_PASSWORD
 
       - test-driver:
-          name: be-tests-mariadb-ee
-          description: "(MariaDB 10.2)"
-          requires:
-            - be-tests-ee
-          e:
-            name: mariadb-10-2
-          driver: mysql
-
-      - test-driver:
-          name: be-tests-mariadb-latest-ee
-          description: "(MariaDB latest)"
-          requires:
-            - be-tests-ee
-          e:
-            name: mariadb-latest
-          driver: mysql
-
-      - test-driver:
           name: be-tests-oracle-ee
           requires:
-            - be-tests-ee
+            - be-tests-java-11-ee
           before-steps:
             - fetch-jdbc-driver:
                 source: ORACLE_JDBC_JAR
@@ -1132,25 +1094,20 @@ workflows:
                       -Djavax.net.ssl.trustStorePassword=metabase $JAVA_OPTS"
 
       - test-driver:
-          name: be-tests-postgres-ee
-          description: "(9.6)"
+          matrix:
+            parameters:
+              version: ["postgres-9-6", "postgres-latest"]
+          name: be-tests-<< matrix.version >>-ee
+          description: "(<< matrix.version >>)"
           requires:
-            - be-tests-ee
-          e: postgres-9-6
-          driver: postgres
-
-      - test-driver:
-          name: be-tests-postgres-latest-ee
-          description: "(Latest)"
-          requires:
-            - be-tests-ee
-          e: postgres-latest
+            - be-tests-java-11-ee
+          e: << matrix.version >>
           driver: postgres
 
       - test-driver:
           name: be-tests-presto-ee
           requires:
-            - be-tests-ee
+            - be-tests-java-11-ee
           e: presto-186
           before-steps:
             - wait-for-port:
@@ -1160,7 +1117,7 @@ workflows:
       - test-driver:
           name: be-tests-presto-jdbc-ee
           requires:
-            - be-tests-ee
+            - be-tests-java-11-ee
           e: presto-jdbc-env # specific env for running Presto JDBC tests (newer Presto version, SSL, etc.)
           before-steps:
             - wait-for-port:
@@ -1193,21 +1150,21 @@ workflows:
       - test-driver:
           name: be-tests-redshift-ee
           requires:
-            - be-tests-ee
+            - be-tests-java-11-ee
           driver: redshift
           timeout: 15m
 
       - test-driver:
           name: be-tests-snowflake-ee
           requires:
-            - be-tests-ee
+            - be-tests-java-11-ee
           driver: snowflake
           timeout: 115m
 
       - test-driver:
           name: be-tests-sparksql-ee
           requires:
-            - be-tests-ee
+            - be-tests-java-11-ee
           e: sparksql
           before-steps:
             - wait-for-port:
@@ -1215,22 +1172,18 @@ workflows:
           driver: sparksql
 
       - test-driver:
-          name: be-tests-sqlite-ee
+          matrix:
+            parameters:
+              version: ["sqlite", "sqlserver"]
+          name: be-tests-<< matrix.version >>-ee
           requires:
-            - be-tests-ee
-          driver: sqlite
-
-      - test-driver:
-          name: be-tests-sqlserver-ee
-          requires:
-            - be-tests-ee
-          e: sqlserver
-          driver: sqlserver
+            - be-tests-java-11-ee
+          driver: << matrix.version >>
 
       - test-driver:
           name: be-tests-vertica-ee
           requires:
-            - be-tests-ee
+            - be-tests-java-11-ee
           e: vertica
           before-steps:
             - fetch-jdbc-driver:
