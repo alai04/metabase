@@ -529,7 +529,6 @@ jobs:
 ########################################################################################################################
 
   checkout:
-    resource_class: small
     executor: clojure-and-node-and-browsers
     steps:
       - checkout
